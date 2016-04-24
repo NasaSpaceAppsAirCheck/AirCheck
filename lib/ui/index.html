@@ -1,10 +1,19 @@
 <html>
   <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha/css/bootstrap.css">
-
   </head>
+  <style type="text/css">
+    body {
+        background-color: eeeeee !important;
+    }
+    .pie-chart {
+      width: 300px; 
+      height: 300px;
+    }
+  </style>
   <body>
     <div class="container">
+      <br />
       <div class="row">
         <div class="col-xs-4"></div>
         <div class="col-xs-4">
@@ -20,26 +29,27 @@
         </div>
         <div class="col-xs-4"></div>
       </div>
+      <hr />
       <div class="row">
         <div class="col-xs-4">
-          <div id="cough_div" style="width: 900px; height: 500px;"></div>
+          <div id="cough_div" class="pie-chart"></div>
         </div>
         <div class="col-xs-4">
-          <div id="wheeze_div" style="width: 900px; height: 500px;"></div>
+          <div id="wheeze_div" class="pie-chart"></div>
         </div>
         <div class="col-xs-4">
-          <div id="shortBreath_div" style="width: 900px; height: 500px;"></div>
+          <div id="shortBreath_div" class="pie-chart"></div>
         </div>
       </div>
       <div class="row">
         <div class="col-xs-4">
-          <div id="sneeze_div" style="width: 900px; height: 500px;"></div>
+          <div id="sneeze_div" class="pie-chart"></div>
         </div>
         <div class="col-xs-4">
-          <div id="noseBlock_div" style="width: 900px; height: 500px;"></div>
+          <div id="noseBlock_div" class="pie-chart"></div>
         </div>
         <div class="col-xs-4">
-          <div id="itchyEyes_div" style="width: 900px; height: 500px;"></div>
+          <div id="itchyEyes_div" class="pie-chart"></div>
         </div>
       </div>
     </div>
@@ -60,8 +70,10 @@
     function drawChartBySymptom(symptomData, symptom) {
       symptomDiv = symptom + "_div"
       var options = {'title':getChartNameForSymptom(symptom),
+                     'titleTextStyle': {fontSize: 22},
                      'width':400,
-                     'height':300};
+                     'height':300,
+                     'backgroundColor': '#eeeeee'};
       var chart = new google.visualization.PieChart(document.getElementById(symptomDiv));
       chart.draw(symptomData, options);
     }
@@ -78,7 +90,7 @@
           return "Sneezing";
         case "noseBlock":
           return "Stuffy Nose";
-        case "HitchyEyes":
+        case "itchyEyes":
           return "Itchy Eyes";
         default:
           return "How Severe are symptoms.";
@@ -137,7 +149,7 @@
 
     function uriWithQuery() {
       var query = getAqiQuery();
-      return "http://40.83.188.181:9200/user/symptoms/_search?" + query + "size=10000&filter_path=**._source,aggregations.*";
+      return "http://aircheck.westus.cloudapp.azure.com:9200/user/symptoms/_search?" + query + "size=10000&filter_path=**._source,aggregations.*";
     }
   </script>
 </html>
