@@ -10,21 +10,26 @@
       width: 300px; 
       height: 300px;
     }
+    .header-img {
+      align: center;
+    }
   </style>
   <body>
     <div class="container">
-      <br />
+      <div class="row">
+        <img src="http://aircheck.westus.cloudapp.azure.com/img/symptom_log.png" class="header-img" />
+      </div>
       <div class="row">
         <div class="col-xs-4"></div>
         <div class="col-xs-4">
           <select class="form-control" id="aqi-selection">
-            <option>Select Air Quality Index</option>
+            <option>Select Air Quality Index (All AQI)</option>
             <option>Good (AQI 1-50)</option>
             <option>Moderate (AQI 51-100)</option>
             <option>Unhealthy for Sensitive Groups (AQI 101-150)</option>
             <option>Unhealthy (AQI 151-200)</option>
-            <option>Very Unhealthy (AQI 201-250)</option>
-            <option>Hazardous (AQI 251-300)</option>
+            <option>Very Unhealthy (AQI 201-300)</option>
+            <option>Hazardous (AQI 301-500)</option>
           </select>
         </div>
         <div class="col-xs-4"></div>
@@ -73,7 +78,9 @@
                      'titleTextStyle': {fontSize: 22},
                      'width':400,
                      'height':300,
-                     'backgroundColor': '#eeeeee'};
+                     'backgroundColor': '#eeeeee',
+                     'sliceVisibilityThreshold': 0,
+                     'colors': ['#00cc00','#33CC99','#006699','#FF9900','#FF0000']};
       var chart = new google.visualization.PieChart(document.getElementById(symptomDiv));
       chart.draw(symptomData, options);
     }
@@ -117,16 +124,26 @@
     }
 
     function createVisualizationDataBasedOnSymptom(jsonData, symptom) {
-      jsonData = _.map(jsonData.hits.hits, function(s) {return s['_source'] });
-      jsonData = _.where(jsonData, { 'symptom': symptom });
       var data = new google.visualization.DataTable();
       data.addColumn('string', 'Severity');
       data.addColumn('number', 'Count');
-      var rowData = [['good', _.size(_.filter(jsonData, function(s) {return s['severity'] == 0 }))],
-        ['ok', _.size(_.filter(jsonData, function(s) {return s['severity'] == 1 }))],
-        ['meh', _.size(_.filter(jsonData, function(s) {return s['severity'] == 2 }))],
-        ['bad', _.size(_.filter(jsonData, function(s) {return s['severity'] == 3 }))],
-        ['horrible', _.size(_.filter(jsonData, function(s) {return s['severity'] == 4 }))]];
+      var rowData = undefined;
+      if (jsonData == '{}') {
+        rowData = [['good', 0],
+          ['ok', 0],
+          ['meh', 0],
+          ['bad', 0],
+          ['horrible', 0]];
+      } else {
+        jsonData = _.map(JSON.parse(jsonData).hits.hits, function(s) {return s['_source'] });
+        jsonData = _.where(jsonData, { 'symptom': symptom });
+        rowData = [['good', _.size(_.filter(jsonData, function(s) {return s['severity'] == 0 }))],
+          ['ok', _.size(_.filter(jsonData, function(s) {return s['severity'] == 1 }))],
+          ['meh', _.size(_.filter(jsonData, function(s) {return s['severity'] == 2 }))],
+          ['bad', _.size(_.filter(jsonData, function(s) {return s['severity'] == 3 }))],
+          ['horrible', _.size(_.filter(jsonData, function(s) {return s['severity'] == 4 }))]];
+        
+      }
       data.addRows(rowData);
       return data;
     }
@@ -135,12 +152,12 @@
       var xhttp = new XMLHttpRequest();
       xhttp.onreadystatechange = function() {
         if (xhttp.readyState == 4 && xhttp.status == 200) {
-          drawChartBySymptom(createVisualizationDataBasedOnSymptom(JSON.parse(xhttp.responseText), 'cough'), 'cough');
-          drawChartBySymptom(createVisualizationDataBasedOnSymptom(JSON.parse(xhttp.responseText), 'wheeze'), 'wheeze');
-          drawChartBySymptom(createVisualizationDataBasedOnSymptom(JSON.parse(xhttp.responseText), 'shortBreath'), 'shortBreath');
-          drawChartBySymptom(createVisualizationDataBasedOnSymptom(JSON.parse(xhttp.responseText), 'sneeze'), 'sneeze');
-          drawChartBySymptom(createVisualizationDataBasedOnSymptom(JSON.parse(xhttp.responseText), 'noseBlock'), 'noseBlock');
-          drawChartBySymptom(createVisualizationDataBasedOnSymptom(JSON.parse(xhttp.responseText), 'itchyEyes'), 'itchyEyes');
+          drawChartBySymptom(createVisualizationDataBasedOnSymptom(xhttp.responseText, 'cough'), 'cough');
+          drawChartBySymptom(createVisualizationDataBasedOnSymptom(xhttp.responseText, 'wheeze'), 'wheeze');
+          drawChartBySymptom(createVisualizationDataBasedOnSymptom(xhttp.responseText, 'shortBreath'), 'shortBreath');
+          drawChartBySymptom(createVisualizationDataBasedOnSymptom(xhttp.responseText, 'sneeze'), 'sneeze');
+          drawChartBySymptom(createVisualizationDataBasedOnSymptom(xhttp.responseText, 'noseBlock'), 'noseBlock');
+          drawChartBySymptom(createVisualizationDataBasedOnSymptom(xhttp.responseText, 'itchyEyes'), 'itchyEyes');
         }
       };
       xhttp.open("GET", uriWithQuery(), true);
