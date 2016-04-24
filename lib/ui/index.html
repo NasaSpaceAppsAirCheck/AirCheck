@@ -8,7 +8,7 @@
       <div class="row">
         <div class="col-xs-4"></div>
         <div class="col-xs-4">
-          <select class="form-control" id="beer-season">
+          <select class="form-control" id="aqi-selection">
             <option>Select Air Quality Index</option>
             <option>Good (AQI 1-50)</option>
             <option>Moderate (AQI 51-100)</option>
@@ -21,63 +21,97 @@
         <div class="col-xs-4"></div>
       </div>
       <div class="row">
-        <div class="col-xs-4"></div>
         <div class="col-xs-4">
-          <div id="chart_div" style="width: 900px; height: 500px;"></div>
+          <div id="cough_div" style="width: 900px; height: 500px;"></div>
         </div>
-        <div class="col-xs-4"></div>
+        <div class="col-xs-4">
+          <div id="wheeze_div" style="width: 900px; height: 500px;"></div>
+        </div>
+        <div class="col-xs-4">
+          <div id="shortBreath_div" style="width: 900px; height: 500px;"></div>
+        </div>
       </div>
     </div>
   </body>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha/js/umd/dropdown.js"></script>
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
   <script type="text/javascript">
-    // Load the Visualization API and the corechart package.
+    var selectedAqiValue = "Select Air Quality Index";
     google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(function(){});
+    $("#aqi-selection").change(function () {
+        selectedAqiValue = this.value;
+        getSymptomData();
+    });
 
-    // Set a callback to run when the Google Visualization API is loaded.
-    google.charts.setOnLoadCallback(drawChart);
-
-    // Callback that creates and populates a data table,
-    // instantiates the pie chart, passes in the data and
-    // draws it.
-    function drawChart() {
-
-      // Create the data table.
-      var data = new google.visualization.DataTable();
-      data.addColumn('string', 'Topping');
-      data.addColumn('number', 'Slices');
-      data.addRows([
-        ['Mushrooms', 3],
-        ['Onions', 1],
-        ['Olives', 1],
-        ['Zucchini', 1],
-        ['Pepperoni', 2]
-      ]);
-
-      // Set chart options
-      var options = {'title':'How Much Pizza I Ate Last Night',
+    function drawChart(symptomData) {
+      var options = {'title':'How Severe are symptoms.',
                      'width':400,
                      'height':300};
-
-      // Instantiate and draw our chart, passing in some options.
-      var chart = new google.visualization.PieChart(document.getElementById('chart_div'));
-      chart.draw(data, options);
+      var wheezeChart = new google.visualization.PieChart(document.getElementById('wheeze_div'));
+      wheezeChart.draw(symptomData, options);
     }
 
+    function getAqiQuery() {
+      switch(selectedAqiValue) {
+        case "Good (AQI 1-50)":
+          return "q=AQI:[0+TO+50]&";
+        case "Moderate (AQI 51-100)":
+          return "q=AQI:[51+TO+100]&";
+        case "Unhealthy for Sensitive Groups (AQI 101-150)":
+          return "q=AQI:[101+TO+150]&";
+        case "Unhealthy (AQI 151-200)":
+          return "q=AQI:[151+TO+200]&";
+        case "Very Unhealthy (AQI 201-300)":
+          return "q=AQI:[201+TO+300]&";
+        case "Hazardous (AQI 301-500)":
+          return "q=AQI:[301+TO+500]&";
+        default:
+          return "";
+      }
+    }
+
+    function createVisualizationData(jsonData) {
+      jsonData = _.map(jsonData.hits.hits, function(s) {return s['_source'] });
+      debugger;
+      var data = new google.visualization.DataTable();
+      data.addColumn('string', 'Severity');
+      data.addColumn('number', 'Count');
+      var rowData = [['good', _.size(_.filter(jsonData, function(s) {return s['severity'] == 0 }))],
+        ['ok', _.size(_.filter(jsonData, function(s) {return s['severity'] == 1 }))],
+        ['meh', _.size(_.filter(jsonData, function(s) {return s['severity'] == 2 }))],
+        ['bad', _.size(_.filter(jsonData, function(s) {return s['severity'] == 3 }))],
+        ['horrible', _.size(_.filter(jsonData, function(s) {return s['severity'] == 4 }))]];
+      data.addRows(rowData);
+      return data;
+    }
+
+    //q=AQI:[0+TO+50]&
     function getSymptomData() {
       var xhttp = new XMLHttpRequest();
       xhttp.onreadystatechange = function() {
         if (xhttp.readyState == 4 && xhttp.status == 200) {
-          //var data = xhttp.responseText;
-          debugger;
-          drawVisualization();
-          //chart.draw(data, options);
+          var data = createVisualizationData(JSON.parse(xhttp.responseText));
+          drawChart(data);
         }
       };
-      xhttp.open("GET", "http://40.83.188.181:9200/user/symptoms/_search?filter_path=**._source,aggregations.*", true);
+      xhttp.open("GET", uriWithQuery(), true);
       xhttp.send();
+    }
+
+    function uriWithQuery() {
+      var query = getAqiQuery();
+      return "http://40.83.188.181:9200/user/symptoms/_search?" + query + "size=10000&filter_path=**._source,aggregations.*";
     }
   </script>
 </html>
+
+<!-- cough
+wheeze
+shortBreath
+sneeze
+noseBlock
+itchyEyes -->
+
